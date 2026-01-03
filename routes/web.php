@@ -63,14 +63,30 @@ Route::delete('/auth/google/disconnect', [App\Http\Controllers\Auth\SocialiteCon
     ->name('auth.google.disconnect');
 
 Route::get('/notifications/check', function () {
-    // Cek apakah ada tugas yang deadline-nya dalam 1 JAM ke depan
-    // dan statusnya belum selesai
-    $hasDeadline = \App\Models\Task::where('user_id', auth()->id())
-        ->where('status', 'pending')
-        ->whereBetween('deadline', [now(), now()->addHour()]) // Cek 60 menit ke depan
-        ->exists();
+    $now = now();
 
-    return response()->json(['alert' => $hasDeadline]);
+    // Logika 4 Pos (24h, 12h, 1h, 30m)
+    $task = \App\Models\Task::where('user_id', auth()->id())
+        ->where('status', 'pending')
+        ->where(function ($query) use ($now) {
+            $query
+                ->whereBetween('deadline', [$now->copy()->addHours(24), $now->copy()->addHours(24)->addMinutes(2)])
+                ->orWhereBetween('deadline', [$now->copy()->addHours(12), $now->copy()->addHours(12)->addMinutes(2)])
+                ->orWhereBetween('deadline', [$now->copy()->addHour(), $now->copy()->addHour()->addMinutes(2)])
+                ->orWhereBetween('deadline', [$now->copy()->addMinutes(30), $now->copy()->addMinutes(32)]);
+        })
+        ->first();
+
+    if ($task) {
+        $timeRemaining = \Illuminate\Support\Carbon::parse($task->deadline)->diffForHumans();
+        return response()->json([
+            'alert' => true,
+            'id' => $task->id, // <--- KITA TAMBAH INI (ID TUGAS)
+            'message' => "⚠️ Pengingat! Tugas '{$task->title}' deadline {$timeRemaining}!"
+        ]);
+    }
+
+    return response()->json(['alert' => false]);
 })->middleware(['auth']);
 
 require __DIR__ . '/auth.php';

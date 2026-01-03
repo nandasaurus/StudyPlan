@@ -19,7 +19,8 @@ export default function TaskIndex({ auth, tasks, filters }) {
 
     const [queryParams, setQueryParams] = useState({
         search: filters.search || '',
-        status: filters.status || ''
+        status: filters.status || '',
+        sort: filters.sort || '',
     });
 
     const handleSearchFilter = (field, value) => {
@@ -135,6 +136,21 @@ export default function TaskIndex({ auth, tasks, filters }) {
                                 <option value="">Semua Status</option>
                                 <option value="pending">⏳ Belum Selesai</option>
                                 <option value="completed">✅ Selesai</option>
+                            </select>
+                        </div>
+
+                        {/* Sorting  */}
+                        <div>
+                            <select
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-200"
+                                value={queryParams.sort}
+                                onChange={(e) => handleSearchFilter('sort', e.target.value)}
+                            >
+                                <option value="deadline-asc">📅 Deadline Terdekat</option>
+                                <option value="deadline-desc">📅 Deadline Terjauh</option>
+                                <option value="title-asc">🔤 Judul (A-Z)</option>
+                                <option value="title-desc">🔤 Judul (Z-A)</option>
+                                <option value="created-desc">✨ Paling Baru Dibuat</option>
                             </select>
                         </div>
                     </div>

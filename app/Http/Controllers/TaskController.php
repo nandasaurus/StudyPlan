@@ -28,8 +28,30 @@ class TaskController extends Controller
             $query->where('status', $request->status);
         }
 
-        // 4. Ambil data (Urutkan dari deadline terdekat)
-        $tasks = $query->orderBy('deadline', 'asc')->get();
+        // 4. Sorting (Logika Baru Disini)
+        if ($request->filled('sort')) {
+            switch ($request->sort) {
+                case 'deadline-desc': // Paling lama deadlinenya
+                    $query->orderBy('deadline', 'desc');
+                    break;
+                case 'title-asc': // Abjad A-Z
+                    $query->orderBy('title', 'asc');
+                    break;
+                case 'title-desc': // Abjad Z-A
+                    $query->orderBy('title', 'desc');
+                    break;
+                case 'created-desc': // Paling baru dibuat
+                    $query->orderBy('created_at', 'desc');
+                    break;
+                default: // deadline-asc (Default: Paling mepet)
+                    $query->orderBy('deadline', 'asc');
+                    break;
+            }
+        } else {
+            // Kalau gak milih apa-apa, defaultnya deadline terdekat
+            $query->orderBy('deadline', 'asc');
+        }
+        $tasks = $query->get();
 
         // 5. Kirim ke React (Termasuk nilai filter saat ini biar gak ilang pas reload)
         return Inertia::render('Tasks/Index', [

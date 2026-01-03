@@ -9,36 +9,31 @@ export default function Authenticated({ user, header, children }) {
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
     useEffect(() => {
-        // Minta izin
+        // Minta izin notifikasi pas awal buka
         if (Notification.permission !== "granted") {
             Notification.requestPermission();
         }
 
+        // Fungsi pengecek ke Database (Backend)
         const checkServerForDeadline = async () => {
             try {
-                // CCTV 1: Lapor kalau mulai ngecek
-                console.log("🕵️ Sedang mengecek notifikasi ke server..."); 
-
                 const response = await fetch('/notifications/check');
                 const data = await response.json();
 
-                // CCTV 2: Lapor hasil dari server
-                console.log("📨 Jawaban Server:", data); 
-
                 if (data.alert) {
-                    console.log("🔔 ALARM BUNYI! Memutar audio..."); // CCTV 3
-                    
+                    // 1. Bunyikan Suara
                     playNotificationSound();
 
+                    // 2. Tampilkan Popup Browser dengan pesan dari server
                     if (Notification.permission === "granted") {
                         new Notification("⚠️ Pengingat Tugas", {
-                            body: data.message, 
+                            body: data.message, // <--- Ini pesan dinamis (1 jam/30 menit/dll)
                             icon: '/favicon.ico' 
                         });
                     }
                 }
             } catch (error) {
-                console.error("❌ Gagal cek notifikasi:", error);
+                console.error("Gagal cek notifikasi:", error);
             }
         };
 
