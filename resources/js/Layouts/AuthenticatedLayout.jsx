@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
@@ -8,39 +8,48 @@ import { Link } from '@inertiajs/react';
 export default function Authenticated({ user, header, children }) {
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
+    const lastNotifiedId = useRef(null); 
+
     useEffect(() => {
-        // Minta izin notifikasi pas awal buka
         if (Notification.permission !== "granted") {
             Notification.requestPermission();
         }
 
-        // Fungsi pengecek ke Database (Backend)
         const checkServerForDeadline = async () => {
             try {
                 const response = await fetch('/notifications/check');
                 const data = await response.json();
 
                 if (data.alert) {
-                    // 1. Bunyikan Suara
+                    // 👇 LOGIKA ANTI-DOBEL 👇
+                    // Cek: Apakah ID tugas ini SAMA dengan yang barusan bunyi?
+                    if (lastNotifiedId.current === data.id) {
+                        console.log("🔕 Notifikasi dobel dicegah untuk Task ID:", data.id);
+                        return; // Stop, jangan bunyi lagi
+                    }
+
+                    // Kalau beda (tugas baru), simpan ID-nya & Bunyikan!
+                    lastNotifiedId.current = data.id;
+
                     playNotificationSound();
 
-                    // 2. Tampilkan Popup Browser dengan pesan dari server
                     if (Notification.permission === "granted") {
                         new Notification("⚠️ Pengingat Tugas", {
-                            body: data.message, // <--- Ini pesan dinamis (1 jam/30 menit/dll)
+                            body: data.message, 
                             icon: '/favicon.ico' 
                         });
                     }
+                } else {
+                    // Kalau gak ada notif, reset ingatan biar nanti kalau ada lagi bisa bunyi
+                    lastNotifiedId.current = null;
                 }
             } catch (error) {
                 console.error("Gagal cek notifikasi:", error);
             }
         };
 
-        // 1. Cek sekali pas halaman baru dimuat
         checkServerForDeadline();
 
-        // 2. Pasang Timer: Cek ulang setiap 1 Menit (60.000 ms)
         const interval = setInterval(() => {
             checkServerForDeadline();
         }, 60000); 
